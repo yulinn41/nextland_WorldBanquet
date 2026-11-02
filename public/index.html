@@ -228,6 +228,29 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
 .name-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;background:none;color:transparent;caret-color:transparent}
 
 /* =========================================================
+   10-2. 上菜等待頁（傳送到現場螢幕）
+   ========================================================= */
+#s-wait [hidden]{display:none!important}
+.wait-card{width:100%;max-width:400px;padding:calc(var(--vh) * 3) 20px;border-radius:28px;background:#fff;display:flex;flex-direction:column;align-items:center}
+.wait-title{margin-top:10px;font-size:24px;font-weight:900;letter-spacing:.1em}
+.wait-text{margin:6px 0 0;font-size:16px;font-weight:700;line-height:1.5;text-align:center}
+.wait-text b{font-size:26px;font-weight:900;margin:0 4px;color:var(--c-gold)}
+.notice{width:100%;margin:16px 0 0;padding-top:14px;border-top:1px solid var(--c-gold-3);font-size:12px;line-height:1.5}
+.notice strong{display:block;font-size:13px}
+.notice span{display:block;margin-top:8px}
+.notice small{display:block;font-size:10px;opacity:.75}
+#btnWaitNext{visibility:hidden}
+
+.lds-ripple{position:relative;width:72px;height:72px;color:var(--c-gold)}
+.lds-ripple div{position:absolute;border:4px solid currentColor;border-radius:50%;opacity:0;animation:ripple 1s cubic-bezier(0,.2,.8,1) infinite}
+.lds-ripple div:nth-child(2){animation-delay:-.5s}
+@keyframes ripple{0%{inset:32px;opacity:0}5%{opacity:1}100%{inset:0;opacity:0}}
+.checkmark{width:72px;height:72px;fill:none;stroke:var(--c-gold);stroke-width:4;stroke-miterlimit:10}
+.checkmark circle{stroke-dasharray:166;stroke-dashoffset:166;animation:draw .6s ease-out forwards}
+.checkmark path{stroke-dasharray:48;stroke-dashoffset:48;animation:draw .4s ease-out .5s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* =========================================================
    11. ⑦ 結果頁
    ========================================================= */
 .result-head{text-align:center}
@@ -250,7 +273,7 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
 .modal-close{position:absolute;right:8px;top:8px;width:36px;height:36px;font-size:24px;line-height:1}
 .modal h3{margin:12px 0 6px;font-size:21px;font-weight:900;letter-spacing:.1em}
 .modal p{margin:0 0 18px;font-size:14px;font-weight:700;line-height:1.7}
-.modal .text-btn{display:inline-block;min-width:80%;padding:10px 20px;border-radius:999px;background:var(--c-brown);color:#fff;
+.modal .text-btn,#btnWaitNext{display:inline-block;min-width:80%;padding:10px 20px;border-radius:999px;background:var(--c-brown);color:#fff;
   font-size:18px;font-weight:700;letter-spacing:.2em;text-decoration:none;box-shadow:inset 0 0 0 3px var(--c-brown),inset 0 0 0 5px #fff}
 .dev-link{display:block;margin:14px auto 0;font-size:12px;text-decoration:underline;opacity:.6}
 .modal-img{width:110px;height:110px;margin:0 auto}
@@ -382,6 +405,26 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
       </div>
     </section>
 
+    <!-- 上菜等待頁（傳送到現場螢幕） -->
+    <section class="screen" id="s-wait">
+      <div class="screen-body center">
+        <div class="wait-card">
+          <div class="lds-ripple" id="waitLoading"><div></div><div></div></div>
+          <svg class="checkmark" id="waitCheck" viewBox="0 0 52 52" hidden><circle cx="26" cy="26" r="24"/><path d="M14 27 l7 7 l17 -17"/></svg>
+          <div class="wait-title">請留意現場螢幕</div>
+          <p class="wait-text" id="waitText"></p>
+          <div class="notice">
+            <strong>注意事項 Notice</strong>
+            <span>請避免短時間內重複傳送內容，以免影響系統穩定。<small>Please avoid repeatedly submitting content within a short period of time, as this may affect system stability.</small></span>
+            <span>本系統為公共互動裝置，請輪流使用，讓每位參與者都能順利體驗。<small>This is a public interactive installation. Please take turns so that everyone can enjoy the experience.</small></span>
+          </div>
+        </div>
+      </div>
+      <div class="screen-foot">
+        <button id="btnWaitNext">查看我的主廚成就</button>
+      </div>
+    </section>
+
     <!-- ⑦ 結果 / 分享卡 -->
     <section class="screen" id="s-result">
       <div class="screen-body">
@@ -468,9 +511,9 @@ const ASSETS = {
 for (const k in ASSETS) ASSETS[k] = DIR + ASSETS[k];
 
 /* 每頁用哪張背景 */
-const SCREEN_BG = { home:'bgHome', intro:'bgChoose', choose:'bgChoose', detail:'bgStep', ingr:'bgStep', sign:'bgStep', result:'bgStep' };
-/* 右上「上一頁」的去處 */
-const BACK = { intro:'home', choose:'intro', detail:'choose', ingr:'detail', sign:'ingr', result:'sign' };
+const SCREEN_BG = { home:'bgHome', intro:'bgChoose', choose:'bgChoose', detail:'bgStep', ingr:'bgStep', sign:'bgStep', wait:'bgStep', result:'bgStep' };
+/* 右上「上一頁」的去處（等待頁沒有上一頁：料理已送出，不回到輸入暱稱重送） */
+const BACK = { intro:'home', choose:'intro', detail:'choose', ingr:'detail', sign:'ingr', result:'wait' };
 
 const LINE_URL = '#'; // 之後放良作 LINE 加好友連結
 
@@ -491,8 +534,10 @@ function buildDishes(data){
     if (!d.correct?.length) problems.push(`「${d.name}」沒有正確食材，會無法過關`);
     const both = (d.correct || []).filter(id => (d.wrong || []).includes(id));
     if (both.length) problems.push(`「${d.name}」的 ${both.join('、')} 同時在 correct 和 wrong`);
+    if (d.code == null) problems.push(`「${d.name}」沒有料理代碼 code`);
+    else if (data.dishes.some(o => o !== d && o.code === d.code)) problems.push(`「${d.name}」的料理代碼 ${d.code} 重複`);
     return {
-      id: d.id, name: d.name, en: d.en || '', secret: !!d.secret,
+      id: d.id, code: d.code, name: d.name, en: d.en || '', secret: !!d.secret,
       feature: d.feature || '', story: d.story || '',
       img:      DIR + 'food/'  + (d.img      || `dish-${d.id}.png`),                  // 料理插圖
       nameImg:  DIR +            (d.nameImg  || `title-${d.id}.png`),                 // 料理名稱字圖
@@ -604,11 +649,12 @@ function go(id, { back = false } = {}){
   showBg(id);
   const atHome = id === 'home';
   $('#btnHome').setAttribute('aria-disabled', atHome);
-  $('#btnBack').setAttribute('aria-disabled', atHome);
+  $('#btnBack').setAttribute('aria-disabled', !BACK[id]);
 }
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { if (b.getAttribute('aria-disabled') !== 'true') go(b.dataset.go); }));
 
 function resetAll(){
+  clearWait();
   Object.assign(state, { dish:null, picked:new Set(), chef:'', cardBlob:null });
   if (state.cardUrl) URL.revokeObjectURL(state.cardUrl);
   state.cardUrl = '';
@@ -836,7 +882,8 @@ nameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !composing
 $('#btnServe').addEventListener('click', e => {
   if (!state.chef){ restartAnim(e.currentTarget, 'shake'); toast('請先輸入大廚暱稱'); nameInput.focus(); return; }
   nameInput.blur();
-  go('result');
+  go('wait');
+  sendPlate();
 });
 
 /* =========================================================
@@ -959,6 +1006,111 @@ function showSave(){ $('#saveImg').src = state.cardUrl; openModal('modalSave'); 
 $('#btnDownload').addEventListener('click', saveCard);
 
 /* =========================================================
+   L-2. 圓弧文字（透明 PNG，傳給 Unity 疊在盤子上）
+   與 food/dish-*.png 同尺寸疊上去就對齊；要調位置、大小只改 ARC
+   ========================================================= */
+const ARC = {
+  size: 1024,       // 輸出尺寸（正方形）
+  radius: 335,      // 文字離中心的距離
+  centerDeg: 56,    // 文字中點的角度：0＝正右、90＝正下
+  fontPx: 58,
+  gap: 6,           // 字距
+  color: '#5A3E24',
+  suffix: '',       // 接在暱稱後面的字，例如 '大主廚'
+};
+async function renderArcText(name){
+  const chars = Array.from(name + ARC.suffix), font = `900 ${ARC.fontPx}px ${FONT}`;
+  try { await document.fonts.load(font, chars.join('')); } catch {}
+  const c = document.createElement('canvas'); c.width = c.height = ARC.size;
+  const x = c.getContext('2d'), mid = ARC.size / 2;
+  x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = ARC.color;
+  const steps = chars.map(ch => (x.measureText(ch).width + ARC.gap) / ARC.radius);
+  // 字頂朝圓心；由左下往右上閱讀，所以角度遞減
+  let a = ARC.centerDeg * Math.PI / 180 + steps.reduce((sum, s) => sum + s, 0) / 2;
+  chars.forEach((ch, i) => {
+    a -= steps[i] / 2;
+    x.save();
+    x.translate(mid + ARC.radius * Math.cos(a), mid + ARC.radius * Math.sin(a));
+    x.rotate(a - Math.PI / 2);
+    x.fillText(ch, 0, 0);
+    x.restore();
+    a -= steps[i] / 2;
+  });
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('圓弧文字輸出失敗')), 'image/png'));
+}
+
+/* =========================================================
+   L-3. WebSocket + 上菜等待頁
+   傳送順序：HEADER（JSON，含料理代碼）→ 圓弧文字 PNG（Binary）
+   ========================================================= */
+const WAIT_TIMEOUT = 10000;   // 這段時間內沒收到 ETA 就不再等，讓玩家繼續
+const wait = { id:null, acked:false, timer:null, tick:null };
+let ws = null, unityConnected = false;
+
+function connectWS(){
+  if (!location.host) return;   // 直接雙擊 html 開啟時沒有伺服器
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+  ws.binaryType = 'arraybuffer';
+  ws.onclose = () => { unityConnected = false; setTimeout(connectWS, 1000); };
+  ws.onerror = err => console.error('WS 錯誤', err);
+  ws.onmessage = ev => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    if (msg.type === 'UNITY_STATUS') unityConnected = msg.connected;
+    else if (!wait.id) return;
+    else if (msg.type === 'UPLOAD_OK' && msg.id === wait.id) wait.acked = true;
+    else if (msg.type === 'ETA_UPDATE' && msg.id === wait.id) startEta(msg.etaSec);
+    else if (msg.type === 'ERROR' && !wait.acked) setWait('fail');
+  };
+}
+const screenReady = () => ws?.readyState === WebSocket.OPEN && unityConnected;
+const newId = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;   // randomUUID 只有 https 才有
+
+function clearWait(){
+  clearTimeout(wait.timer); clearInterval(wait.tick);
+  Object.assign(wait, { id:null, acked:false, timer:null, tick:null });
+  $('#btnWaitNext').style.visibility = '';
+}
+function setWait(kind, sec){
+  const busy = kind === 'queue' || kind === 'eta';
+  if (!busy){ clearTimeout(wait.timer); clearInterval(wait.tick); $('#btnWaitNext').style.visibility = 'visible'; }
+  $('#waitLoading').hidden = !busy;
+  $('#waitCheck').toggleAttribute('hidden', kind !== 'done' && kind !== 'sent');   // SVG 沒有 .hidden 屬性
+  $('#waitText').innerHTML = {
+    queue: '正在排程中，請稍候…',
+    eta:   `你的料理將在約<b>${sec}</b>秒後出現`,
+    done:  '你的料理已經上桌了！',
+    sent:  '你的料理已送出，很快就會出現',
+    fail:  '現場螢幕暫時沒有連線，這次不會出現在螢幕上',
+  }[kind];
+}
+function startEta(etaSec){
+  clearTimeout(wait.timer); clearInterval(wait.tick);
+  let sec = Math.max(0, Math.floor(Number(etaSec) || 0));
+  if (sec === 0) return setWait('done');
+  setWait('eta', sec);
+  wait.tick = setInterval(() => { if (--sec > 0) setWait('eta', sec); else setWait('done'); }, 1000);
+}
+async function sendPlate(){
+  clearWait();
+  const id = wait.id = newId(), { code, id:dishId } = state.dish;
+  setWait('queue');
+  if (!screenReady()) return setWait('fail');
+  wait.timer = setTimeout(() => setWait(wait.acked ? 'sent' : 'fail'), WAIT_TIMEOUT);
+  try {
+    const buffer = await (await renderArcText(state.chef)).arrayBuffer();
+    if (wait.id !== id) return;                // 繪製期間玩家已回首頁
+    if (!screenReady()) return setWait('fail');
+    ws.send(JSON.stringify({ type:'HEADER', id, meta:{ dishCode:code, dishId } }));
+    ws.send(buffer);
+  } catch (err) {
+    console.error(err);
+    if (wait.id === id) setWait('fail');
+  }
+}
+$('#btnWaitNext').addEventListener('click', () => go('result'));
+
+/* =========================================================
    M. 彈窗
    ========================================================= */
 function openModal(id){ $('#' + id).classList.add('open'); }
@@ -990,6 +1142,7 @@ try {
 }
 $('#btnHome').setAttribute('aria-disabled', true);
 $('#btnBack').setAttribute('aria-disabled', true);
+connectWS();
 </script>
 </body>
 </html>

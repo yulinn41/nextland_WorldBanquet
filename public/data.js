@@ -66,58 +66,59 @@ window.GAME_DATA = {
   /* -------------------------------------------------------
      二、料理
      列的順序 = STEP1 選菜頁的順序
+     code = 料理代碼，傳給 Unity 用來對應料理（不可重複；調整順序時不用改）
      correct = 正確食材（全部選到才能過關）
      wrong   = 干擾項
      兩組加起來就是選食材頁出現的卡片（建議共 10 張）
      圖片自動對應：assets/food/dish-料理ID.png、assets/title-料理ID.png、assets/info/info-料理ID.png、assets/Award/world-banquet-Award-料理ID.png
      ------------------------------------------------------- */
   dishes: [
-    { id:'tonkatsu', name:'日式炸豬排', en:'Japanese Deep-fried Pork Cutlet',
+    { id:'tonkatsu', code:1, name:'日式炸豬排', en:'Japanese Deep-fried Pork Cutlet',
       correct: ['breadcrumbs', 'miso', 'cabbage', 'rice', 'pork-loin'],
       wrong:   ['egg', 'ginger-shreds', 'soy-sauce', 'minced-garlic', 'onion'] },
 
-    { id:'radish-soup', name:'台式排骨蘿蔔湯', en:'White Radish Pork Rib Soup',
+    { id:'radish-soup', code:2, name:'台式排骨蘿蔔湯', en:'White Radish Pork Rib Soup',
       correct: ['white-radish', 'cilantro', 'pork-ribs', 'ginger-slices'],
       wrong:   ['ginger-shreds', 'pork-bone-broth', 'onion', 'garlic-slices',
                 'holy-basil', 'bbq-sauce'] },                       // ← 最後兩個是補滿用，可替換
 
-    { id:'guabao', name:'台灣刈包', en:'Taiwanese Gua Bao',
+    { id:'guabao', code:3, name:'台灣刈包', en:'Taiwanese Gua Bao',
       feature:'綿白餅皮包覆酥軟五花肉，鹹香、酸爽、甜潤在一口間層層化開。',
       story:'尾牙餐桌上的傳統美食，形如老虎咬肉象徵咬住整年福氣，是台灣人把祝福做成的形狀。',
       correct: ['peanut-powder', 'braised-pork-belly', 'cilantro', 'steamed-bun', 'pickled-greens'],
       wrong:   ['crispy-pork-belly', 'egg', 'minced-garlic',
                 'holy-basil', 'red-wine'] },                        // ← 最後兩個是補滿用，可替換
 
-    { id:'bbq-ribs', name:'美式炭烤豬肋排', en:'Charcoal-grilled Pork Ribs',
+    { id:'bbq-ribs', code:4, name:'美式炭烤豬肋排', en:'Charcoal-grilled Pork Ribs',
       correct: ['dry-rub', 'baby-back-ribs', 'bbq-sauce'],
       wrong:   ['garlic-slices', 'mushroom', 'onion', 'pork-ribs', 'potato',
                 'pickled-greens', 'holy-basil'] },                  // ← 最後兩個是補滿用，可替換
 
-    { id:'kaprao', name:'泰式打拋豬肉', en:'Thai-style Basil Pork',
+    { id:'kaprao', code:5, name:'泰式打拋豬肉', en:'Thai-style Basil Pork',
       correct: ['cilantro', 'egg', 'holy-basil', 'minced-pork', 'fish-sauce', 'rice', 'minced-garlic'],
       wrong:   ['soy-sauce', 'pork-loin', 'onion'] },
 
-    { id:'roast-pork', name:'英式脆皮烤豬', en:'Crispy Roast Pork',
+    { id:'roast-pork', code:6, name:'英式脆皮烤豬', en:'Crispy Roast Pork',
       correct: ['potato', 'carrot', 'orange-marmalade', 'sweet-potato', 'crispy-pork-belly'],
       wrong:   ['onion', 'mushroom', 'bouquet-garni', 'minced-garlic', 'mashed-potatoes'] },
 
-    { id:'lurou', name:'台灣滷肉飯', en:'Braised Pork Rice',
+    { id:'lurou', code:7, name:'台灣滷肉飯', en:'Braised Pork Rice',
       correct: ['rock-sugar', 'shallot', 'soy-sauce', 'rice', 'pork-belly'],
       wrong:   ['cilantro', 'egg', 'braised-pork-belly',
                 'orange-marmalade', 'ssamjang'] },                  // ← 最後兩個是補滿用，可替換
 
-    { id:'samgyeop', name:'韓式烤五花肉', en:'Korean-style Grilled Pork Belly',
+    { id:'samgyeop', code:8, name:'韓式烤五花肉', en:'Korean-style Grilled Pork Belly',
       correct: ['garlic-slices', 'pork-belly', 'ssamjang', 'kimchi', 'lettuce'],
       wrong:   ['egg', 'pork-loin', 'onion',
                 'red-wine', 'orange-marmalade'] },                  // ← 最後兩個是補滿用，可替換
 
     // ---- 神秘隱藏版（secret:true = 加入 LINE 會員才能解鎖）----
-    { id:'secret-1', secret:true, name:'酸菜豬肚湯', en:'Pickled Mustard Greens & Pork Tripe Soup',
+    { id:'secret-1', code:9, secret:true, name:'酸菜豬肚湯', en:'Pickled Mustard Greens & Pork Tripe Soup',
       correct: ['ginger-shreds', 'pork-bone-broth', 'pickled-greens', 'pork-tripe'],
       wrong:   ['carrot', 'cilantro', 'minced-garlic', 'ginger-slices',
                 'orange-marmalade', 'bbq-sauce'] },                 // ← 最後兩個是補滿用，可替換
 
-    { id:'secret-2', secret:true, name:'法式紅酒燉豬肉', en:'French Red Wine Braised Pork',
+    { id:'secret-2', code:10, secret:true, name:'法式紅酒燉豬肉', en:'French Red Wine Braised Pork',
       correct: ['mashed-potatoes', 'mushroom', 'bouquet-garni', 'red-wine', 'onion', 'pork-shoulder'],
       wrong:   ['potato', 'carrot', 'pork-ribs', 'minced-garlic'] },
   ],
