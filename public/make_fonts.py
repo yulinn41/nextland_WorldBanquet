@@ -1,7 +1,7 @@
 """
 把「獅尾四季春加糖」切成網頁用的兩個 woff2：
 
-  fonts/swei-ui.woff2      index.html＋data.js 裡出現的所有字（固定文案），檔案很小，先載
+  fonts/swei-ui.woff2      index.html＋script.js＋data.js 裡出現的所有字（固定文案），檔案很小，先載
   fonts/swei-common.woff2  Big5 常用字 5401 字＋標點＋英數，給暱稱等使用者輸入的字
 
 用法：python make_fonts.py                  （自動找同資料夾的 .ttf/.otf）
@@ -40,12 +40,13 @@ fullwidth = {chr(c) for c in range(0xFF01, 0xFF5F)}
 
 # 1) 網頁固定文字＋ data.js 裡的料理名、食材名
 text = html.read_text(encoding="utf-8")
-data_js = html.with_name("data.js")
-if data_js.exists():
-    text += data_js.read_text(encoding="utf-8")
-    print("已讀取 data.js 的文字")
-else:
-    print("（找不到 data.js，只讀 index.html）")
+for name in ("script.js", "data.js"):
+    extra = html.with_name(name)
+    if extra.exists():
+        text += extra.read_text(encoding="utf-8")
+        print(f"已讀取 {name} 的文字")
+    else:
+        print(f"（找不到 {name}）")
 ui_chars = {ch for ch in text if ord(ch) > 0x7F} | ascii_chars | punct
 
 # 2) Big5 第一級常用字（0xA440–0xC67E）
