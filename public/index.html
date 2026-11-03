@@ -1006,13 +1006,14 @@ function showSave(){ $('#saveImg').src = state.cardUrl; openModal('modalSave'); 
 $('#btnDownload').addEventListener('click', saveCard);
 
 /* =========================================================
-   L-2. 圓弧文字（透明 PNG，傳給 Unity 疊在盤子上）
-   與 food/dish-*.png 同尺寸疊上去就對齊；要調位置、大小只改 ARC
+   L-2. 圓弧文字（透明 PNG，傳給 Unity 疊在盤子下緣）
+   尺寸固定，名字長短都不會讓 Unity 裡的圖變形或跑位；要調大小只改 ARC
    ========================================================= */
 const ARC = {
-  size: 1024,       // 輸出尺寸（正方形）
-  radius: 335,      // 文字離中心的距離
-  centerDeg: 56,    // 文字中點的角度：0＝正右、90＝正下
+  width: 480,       // 輸出尺寸：剛好放得下 6 個字（加 suffix 要跟著加大）
+  height: 150,
+  radius: 335,      // 圓弧半徑
+  bottomPad: 8,     // 字到圖片下緣的距離
   fontPx: 58,
   gap: 6,           // 字距
   color: '#5A3E24',
@@ -1021,16 +1022,17 @@ const ARC = {
 async function renderArcText(name){
   const chars = Array.from(name + ARC.suffix), font = `900 ${ARC.fontPx}px ${FONT}`;
   try { await document.fonts.load(font, chars.join('')); } catch {}
-  const c = document.createElement('canvas'); c.width = c.height = ARC.size;
-  const x = c.getContext('2d'), mid = ARC.size / 2;
+  const c = document.createElement('canvas'); c.width = ARC.width; c.height = ARC.height;
+  const x = c.getContext('2d');
+  const cx = ARC.width / 2, cy = ARC.height - ARC.bottomPad - ARC.fontPx / 2 - ARC.radius;   // 圓心在圖片上方
   x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = ARC.color;
   const steps = chars.map(ch => (x.measureText(ch).width + ARC.gap) / ARC.radius);
-  // 字頂朝圓心；由左下往右上閱讀，所以角度遞減
-  let a = ARC.centerDeg * Math.PI / 180 + steps.reduce((sum, s) => sum + s, 0) / 2;
+  // 排在圓的正下方，字頂朝圓心；由左往右閱讀，所以角度遞減
+  let a = Math.PI / 2 + steps.reduce((sum, s) => sum + s, 0) / 2;
   chars.forEach((ch, i) => {
     a -= steps[i] / 2;
     x.save();
-    x.translate(mid + ARC.radius * Math.cos(a), mid + ARC.radius * Math.sin(a));
+    x.translate(cx + ARC.radius * Math.cos(a), cy + ARC.radius * Math.sin(a));
     x.rotate(a - Math.PI / 2);
     x.fillText(ch, 0, 0);
     x.restore();
