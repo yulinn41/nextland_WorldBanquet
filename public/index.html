@@ -224,8 +224,20 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
 .slots{position:relative;display:flex;justify-content:center;gap:8px;margin-top:calc(var(--vh) * 1)}
 .slot{width:40px;height:calc(var(--vh) * 5.5);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;
   border-bottom:2px solid var(--c-brown);font-size:28px;font-weight:900;position:relative}
+.slot.half{width:16px;font-size:18px}
 .slot.cursor::after{content:"";position:absolute;bottom:8px;left:50%;width:2px;height:28px;background:var(--c-brown);animation:blink 1s step-end infinite}
 .name-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;background:none;color:transparent;caret-color:transparent}
+
+/* =========================================================
+   10-1. 烹煮頁（送出後先跑進度條）
+   ========================================================= */
+#s-cook .screen-body{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:calc(var(--vh) * 6)}
+.cook-text{font-size:22px;font-weight:900;letter-spacing:.2em}
+.cook-bar{width:min(72%,300px);height:24px;margin-top:12px;padding:3px;border:2px solid var(--c-brown);border-radius:999px;background:#fff}
+.cook-fill{height:100%;width:0;border-radius:999px;
+  background:repeating-linear-gradient(115deg,var(--c-gold) 0 10px,var(--c-gold-2) 10px 16px)}
+.cook-fill.run{animation:cook linear forwards}
+@keyframes cook{to{width:100%}}
 
 /* =========================================================
    10-2. 上菜等待頁（傳送到現場螢幕）
@@ -394,7 +406,7 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
         <div class="orbit" id="orbit"></div>
         <div class="dish-title sm" id="signTitle"></div>
         <div class="name-card">
-          <div class="name-tip" data-asset="chefTip" data-alt="請輸入大廚暱稱（限6字）"></div>
+          <div class="name-tip" data-asset="chefTip" data-alt="請輸入大廚暱稱（限6個中文字或12個英文字）"></div>
           <label class="slots" id="slots">
             <input class="name-input" id="nameInput" type="text" autocomplete="off" enterkeyhint="done" aria-label="大廚暱稱">
           </label>
@@ -402,6 +414,14 @@ img{display:block;max-width:100%;user-select:none;-webkit-user-drag:none}
       </div>
       <div class="screen-foot">
         <button class="btn" id="btnServe" data-asset="btnServe" data-alt="送出上菜" aria-disabled="true"></button>
+      </div>
+    </section>
+
+    <!-- 烹煮頁（圖片之後再加） -->
+    <section class="screen" id="s-cook">
+      <div class="screen-body">
+        <div class="cook-text">慢火滷煮中…</div>
+        <div class="cook-bar"><div class="cook-fill" id="cookFill"></div></div>
       </div>
     </section>
 
@@ -511,7 +531,7 @@ const ASSETS = {
 for (const k in ASSETS) ASSETS[k] = DIR + ASSETS[k];
 
 /* 每頁用哪張背景 */
-const SCREEN_BG = { home:'bgHome', intro:'bgChoose', choose:'bgChoose', detail:'bgStep', ingr:'bgStep', sign:'bgStep', wait:'bgStep', result:'bgStep' };
+const SCREEN_BG = { home:'bgHome', intro:'bgChoose', choose:'bgChoose', detail:'bgStep', ingr:'bgStep', sign:'bgStep', cook:'bgStep', wait:'bgStep', result:'bgStep' };
 /* 右上「上一頁」的去處（等待頁沒有上一頁：料理已送出，不回到輸入暱稱重送） */
 const BACK = { intro:'home', choose:'intro', detail:'choose', ingr:'detail', sign:'ingr', result:'wait' };
 
@@ -838,7 +858,18 @@ $('#btnFinish').addEventListener('click', e => {
 /* =========================================================
    K. ⑥ STEP4 大廚暱稱（6 字內，支援注音輸入法）
    ========================================================= */
-const MAX = 6;
+// 中文佔 2 格、半形英數佔 1 格：最多 6 個中文或 12 個英文，一半的格子寬度也剛好是一半
+const NAME_UNITS = 12;
+const nameUnits = ch => /^[\x00-\xff]$/.test(ch) ? 1 : 2;
+function fitName(v){
+  const chars = []; let used = 0;
+  for (const ch of v){
+    used += nameUnits(ch);
+    if (used > NAME_UNITS) break;
+    chars.push(ch);
+  }
+  return chars;
+}
 const nameInput = $('#nameInput'), slotsEl = $('#slots');
 let composing = false;
 
@@ -851,24 +882,32 @@ function renderSign(){
   }).join('');
   $('#orbit').innerHTML = `<div class="center-dish">${media(d.img, d.name)}</div>${floats}`;
   $('#signTitle').innerHTML = titleHTML(d);
-  if (!slotsEl.querySelector('.slot')){
-    slotsEl.insertAdjacentHTML('afterbegin', Array.from({ length:MAX }, () => '<span class="slot"></span>').join(''));
-  }
-  nameInput.value = state.chef;
   renderSlots(state.chef);
   setBtnEnabled($('#btnServe'), !!state.chef, 'btnServeOff');
 }
 function renderSlots(v){
-  const chars = Array.from(v), focused = document.activeElement === nameInput;
-  slotsEl.querySelectorAll('.slot').forEach((s, i) => {
-    s.textContent = chars[i] || '';
-    s.classList.toggle('cursor', focused && i === Math.min(chars.length, MAX - 1) && chars.length < MAX);
-  });
+  const chars = fitName(v), focused = document.activeElement === nameInput;
+  slotsEl.querySelectorAll('.slot').forEach(el => el.remove());
+  const add = (text, half, cursor) => {
+    const el = document.createElement('span');
+    el.className = 'slot' + (half ? ' half' : '') + (cursor ? ' cursor' : '');
+    el.textContent = text;
+    nameInput.before(el);
+  };
+  chars.forEach(ch => add(ch, nameUnits(ch) === 1));
+  // 剩下的格子補空格；游標落在第一個空格
+  let left = NAME_UNITS - chars.reduce((sum, ch) => sum + nameUnits(ch), 0), first = focused;
+  while (left > 0){
+    const half = left % 2 === 1;
+    add('', half, first);
+    first = false;
+    left -= half ? 1 : 2;
+  }
 }
 function syncName(){
-  let chars = Array.from(nameInput.value.replace(/\s/g, ''));
-  if (chars.length > MAX){ chars = chars.slice(0, MAX); toast('最多 6 個字喔'); }
-  nameInput.value = state.chef = chars.join('');
+  const raw = nameInput.value.replace(/\s/g, ''), name = fitName(raw).join('');
+  if (name !== raw) toast('最多 6 個中文字或 12 個英文字喔');
+  nameInput.value = state.chef = name;
   renderSlots(state.chef);
   setBtnEnabled($('#btnServe'), !!state.chef, 'btnServeOff');
 }
@@ -882,8 +921,12 @@ nameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !composing
 $('#btnServe').addEventListener('click', e => {
   if (!state.chef){ restartAnim(e.currentTarget, 'shake'); toast('請先輸入大廚暱稱'); nameInput.focus(); return; }
   nameInput.blur();
-  go('wait');
-  sendPlate();
+  go('cook');
+  const fill = $('#cookFill');
+  fill.style.animationDuration = `${COOK_MS}ms`;
+  restartAnim(fill, 'run');
+  // 進度條跑完才傳送，等待頁的秒數才會接近實際時間
+  cookTimer = setTimeout(() => { go('wait'); sendPlate(); }, COOK_MS);
 });
 
 /* =========================================================
@@ -1010,9 +1053,10 @@ $('#btnDownload').addEventListener('click', saveCard);
    尺寸固定，名字長短都不會讓 Unity 裡的圖變形或跑位；要調大小只改 ARC
    ========================================================= */
 const ARC = {
-  width: 480,       // 輸出尺寸：剛好放得下 6 個字（加 suffix 要跟著加大）
+  width: 480,       // 輸出尺寸：剛好放得下 maxArc
   height: 150,
   radius: 335,      // 圓弧半徑
+  maxArc: 384,      // 文字最長的弧長（6 個中文字），超過就等比縮小
   bottomPad: 8,     // 字到圖片下緣的距離
   fontPx: 58,
   gap: 6,           // 字距
@@ -1026,7 +1070,10 @@ async function renderArcText(name){
   const x = c.getContext('2d');
   const cx = ARC.width / 2, cy = ARC.height - ARC.bottomPad - ARC.fontPx / 2 - ARC.radius;   // 圓心在圖片上方
   x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = ARC.color;
-  const steps = chars.map(ch => (x.measureText(ch).width + ARC.gap) / ARC.radius);
+  const widths = chars.map(ch => x.measureText(ch).width + ARC.gap);
+  const scale = Math.min(1, ARC.maxArc / widths.reduce((sum, w) => sum + w, 0));
+  x.font = `900 ${ARC.fontPx * scale}px ${FONT}`;
+  const steps = widths.map(w => w * scale / ARC.radius);
   // 排在圓的正下方，字頂朝圓心；由左往右閱讀，所以角度遞減
   let a = Math.PI / 2 + steps.reduce((sum, s) => sum + s, 0) / 2;
   chars.forEach((ch, i) => {
@@ -1045,6 +1092,8 @@ async function renderArcText(name){
    L-3. WebSocket + 上菜等待頁
    傳送順序：HEADER（JSON，含料理代碼）→ 圓弧文字 PNG（Binary）
    ========================================================= */
+const COOK_MS = 3000;         // 烹煮頁進度條的長度
+let cookTimer = null;
 const WAIT_TIMEOUT = 10000;   // 這段時間內沒收到 ETA 就不再等，讓玩家繼續
 const wait = { id:null, acked:false, timer:null, tick:null };
 let ws = null, unityConnected = false;
@@ -1069,6 +1118,7 @@ const screenReady = () => ws?.readyState === WebSocket.OPEN && unityConnected;
 const newId = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;   // randomUUID 只有 https 才有
 
 function clearWait(){
+  clearTimeout(cookTimer);
   clearTimeout(wait.timer); clearInterval(wait.tick);
   Object.assign(wait, { id:null, acked:false, timer:null, tick:null });
   $('#btnWaitNext').style.visibility = '';
